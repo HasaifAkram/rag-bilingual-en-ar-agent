@@ -1,0 +1,755 @@
+{
+  "name": "RAG - Bilingual EN/AR Chat Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "fdd2b46b-d6ff-4852-9c5f-b7e415f418f2",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e991ee68-9c55-464d-afa8-62bf656e9ec8",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        576
+      ],
+      "webhookId": "REPLACE_WITH_YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.chatInput;\nconst arabicRegex = /[\\u0600-\\u06FF\\u0750-\\u077F\\u08A0-\\u08FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF]/;\nconst isArabic = arabicRegex.test(text);\n\nreturn [{\n  json: {\n    ...$json,\n    language: isArabic ? 'ar' : 'en'\n  }\n}];"
+      },
+      "id": "9d490c5e-9072-4ac4-864b-ff9b28b4f117",
+      "name": "Detect Language",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{$json.language}}",
+              "rightValue": "ar",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "25edbf8c-2507-4bdb-9b23-5658230a4fdb",
+      "name": "If Arabic",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are the official Khorfakkan information assistant. You answer strictly from a retrieved FAQ knowledge base — you never invent, infer, or generalize beyond what the retrieval tool returns.\n\nRULES:\n1. For every user message, call the english_kb tool first. Do not answer from memory.\n2. The knowledge base is structured as Q&A pairs. If a retrieved chunk's question closely matches the user's query, give that chunk's answer as your response, preserving its exact meaning and factual content. Do not paraphrase numbers, names, dates, prices, or procedures — reproduce those exactly as retrieved.\n3. If multiple retrieved chunks are relevant, prioritize the one whose question most closely matches the user's intent. Do not blend multiple answers into one unless the user's question genuinely spans more than one topic.\n4. If no retrieved chunk reasonably matches the user's question, respond: \"I don't have that information in the Khorfakkan knowledge base.\" Do not guess or fabricate an answer.\n5. Always respond in English only, regardless of the language of any retrieved content.\n6. Never use the arabic_kb tool.\n7. Keep responses conversational and natural — don't show \"Q:\" or \"A:\" labels or mention that you are retrieving from a database."
+        }
+      },
+      "id": "c53435ea-d876-4c1e-9e34-2639eeb84e2f",
+      "name": "English Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1488,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "أنت المساعد الرسمي لتقديم المعلومات حول خورفكان. تجيب حصراً من قاعدة معرفة الأسئلة الشائعة المسترجعة — لا تخترع أو تستنتج أو تعمم أي معلومة غير موجودة في نتائج الاسترجاع.\n\nالقواعد:\n١. لكل رسالة من المستخدم، استخدم أداة arabic_kb أولاً. لا تجب من الذاكرة.\n٢. قاعدة المعرفة منظمة على شكل أزواج سؤال وجواب. إذا كان سؤال أحد المقاطع المسترجعة مطابقاً بشكل وثيق لاستفسار المستخدم، قدّم إجابة ذلك المقطع محافظاً على معناها ومحتواها الدقيق. لا تُعِد صياغة الأرقام أو الأسماء أو التواريخ أو الأسعار أو الإجراءات — انقلها كما وردت تماماً.\n٣. إذا كانت عدة مقاطع مسترجعة ذات صلة، أعطِ الأولوية للمقطع الذي يطابق سؤاله نية المستخدم بشكل أدق. لا تدمج عدة إجابات في إجابة واحدة إلا إذا كان سؤال المستخدم يشمل أكثر من موضوع فعلياً.\n٤. إذا لم يتطابق أي مقطع مسترجع مع سؤال المستخدم بشكل معقول، أجب: \"لا تتوفر لدي هذه المعلومة في قاعدة معرفة خورفكان.\" لا تخمّن ولا تختلق إجابة.\n٥. أجب دائماً باللغة العربية فقط، بغض النظر عن لغة أي محتوى مسترجع.\n٦. لا تستخدم أداة english_kb أبداً.\n٧. اجعل الردود طبيعية ومحادثاتية — لا تعرض تسميات \"س:\" أو \"ج:\" ولا تذكر أنك تسترجع من قاعدة بيانات."
+        }
+      },
+      "id": "e9d076a0-d6e2-4d03-b79e-e4fe33430cd7",
+      "name": "Arabic Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1968,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_DRIVE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "khorfkan english doc.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/YOUR_FILE_ID/view"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -336,
+        208
+      ],
+      "id": "5354d4f3-3a6b-4d06-8a37-b3a3b0d9c475",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "nkbCGYFfkgO8rA6a",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_DRIVE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "khorfkan arabic doc.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/YOUR_FILE_ID/view"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -160,
+        656
+      ],
+      "id": "e4e6cee0-3483-4235-95e2-edf04fa8db32",
+      "name": "Download file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "nkbCGYFfkgO8rA6a",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "rag-upgraded",
+          "mode": "list",
+          "cachedResultName": "rag-upgraded"
+        },
+        "options": {
+          "pineconeNamespace": "eng-doc"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        544,
+        160
+      ],
+      "id": "8e8da417-1750-4ba1-902c-4a2629a52a37",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "7zoxMP2hpOlNlbY4",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        432,
+        368
+      ],
+      "id": "d889abde-8c23-45d5-af7d-6de3ffa53ce9",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "1wR2zqA2jRIqtZxS",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "language",
+                "value": "english"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        352
+      ],
+      "id": "d621d284-e949-4a3b-a97a-a587c3071c47",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "rag-upgraded",
+          "mode": "list",
+          "cachedResultName": "rag-upgraded"
+        },
+        "options": {
+          "pineconeNamespace": "arabic-doc"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        720
+      ],
+      "id": "e1dd0929-11a4-45ad-ab91-7b9d0207a42c",
+      "name": "Pinecone Vector Store1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "7zoxMP2hpOlNlbY4",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        496,
+        992
+      ],
+      "id": "c81b4070-095f-4aaf-8d12-92a72ffa0959",
+      "name": "Embeddings Ollama1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "1wR2zqA2jRIqtZxS",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "language",
+                "value": "arabic"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        1008
+      ],
+      "id": "b040aab3-b70d-49c5-88a4-1f2c8628598f",
+      "name": "Default Data Loader1"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Call this tool to access the policy and FAQ database",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "rag-upgraded",
+          "mode": "list",
+          "cachedResultName": "rag-upgraded"
+        },
+        "topK": 100,
+        "options": {
+          "pineconeNamespace": "arabic-doc",
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "language",
+                "value": "arabic"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        2176,
+        832
+      ],
+      "id": "c84d52b5-41de-4248-9baa-041eab88580b",
+      "name": "Pinecone Vector Store2",
+      "credentials": {
+        "pineconeApi": {
+          "id": "7zoxMP2hpOlNlbY4",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        832
+      ],
+      "id": "90e7b766-5593-4ffd-b567-2377a9890b86",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "w7ZaVqldO1F1dqeZ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1360,
+        1184
+      ],
+      "id": "9994738b-7471-45a3-8425-039c3b71518a",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "w7ZaVqldO1F1dqeZ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Call this tool to access the policy and FAQ database",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "rag-upgraded",
+          "mode": "list",
+          "cachedResultName": "rag-upgraded"
+        },
+        "topK": 100,
+        "options": {
+          "pineconeNamespace": "eng-doc",
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "language",
+                "value": "english"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        1600,
+        1168
+      ],
+      "id": "9454c4fd-ec7a-4525-bb7d-08d274e88523",
+      "name": "Pinecone Vector Store3",
+      "credentials": {
+        "pineconeApi": {
+          "id": "7zoxMP2hpOlNlbY4",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        1856,
+        1312
+      ],
+      "id": "38c1fef9-9150-407a-a0e7-6afcd0f5e0c9",
+      "name": "Embeddings Ollama2",
+      "credentials": {
+        "ollamaApi": {
+          "id": "1wR2zqA2jRIqtZxS",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        1040
+      ],
+      "id": "a4928c20-6250-49f1-a4bb-eb7b56bad969",
+      "name": "Embeddings Ollama3",
+      "credentials": {
+        "ollamaApi": {
+          "id": "1wR2zqA2jRIqtZxS",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        208
+      ],
+      "id": "784bc30d-767b-4650-8193-2eb2234817c8",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        48,
+        656
+      ],
+      "id": "d3d12219-8e52-4de9-b7ad-9c4cc99532ec",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.text; // field output by Extract from File (PDF or DOCX)\nconst regex = /Q(\\d+)\\s*\\n?([\\s\\S]*?)\\nA\\1\\s*\\n?([\\s\\S]*?)(?=\\n?Q\\d+\\s*\\n|$)/g;\n\nconst items = [];\nlet match;\nwhile ((match = regex.exec(text)) !== null) {\n  const question = match[2].trim();\n  const answer = match[3].trim();\n  if (question && answer) {\n    items.push({\n      json: {\n        pageContent: `Q: ${question}\\nA: ${answer}`\n      }\n    });\n  }\n}\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        208
+      ],
+      "id": "345bc62a-942a-401a-873a-d535a6ab5912",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.text; // field output by Extract from File (PDF or DOCX)\nconst regex = /Q(\\d+)\\s*\\n?([\\s\\S]*?)\\nA\\1\\s*\\n?([\\s\\S]*?)(?=\\n?Q\\d+\\s*\\n|$)/g;\n\nconst items = [];\nlet match;\nwhile ((match = regex.exec(text)) !== null) {\n  const question = match[2].trim();\n  const answer = match[3].trim();\n  if (question && answer) {\n    items.push({\n      json: {\n        pageContent: `Q: ${question}\\nA: ${answer}`\n      }\n    });\n  }\n}\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        656
+      ],
+      "id": "40c9eed4-463b-4ef0-99a7-8a417dc4b0e2",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Detect Language",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Language": {
+      "main": [
+        [
+          {
+            "node": "If Arabic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Arabic": {
+      "main": [
+        [
+          {
+            "node": "Arabic Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "English Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader1": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Arabic Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Arabic Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "English Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store3": {
+      "ai_tool": [
+        [
+          {
+            "node": "English Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store3",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama3": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "10e4761d-a7bc-437c-b3d4-6bae7b8970fe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "n8n-instance"
+  },
+  "nodeGroups": [],
+  "id": "aqpedPWx6sqjgWRz",
+  "tags": []
+}
